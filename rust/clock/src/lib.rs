@@ -1,22 +1,9 @@
 use std::fmt;
 
+#[derive(Debug, PartialEq)]
 pub struct Clock {
     hours: i32,
     minutes: i32,
-}
-
-// I could also implement this with deriving.
-impl PartialEq for Clock {
-    fn eq(&self, other: &Self) -> bool {
-        self.hours == other.hours && self.minutes == other.minutes
-    }
-}
-
-impl fmt::Debug for Clock {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Reuse the fmt() function from the fmt::Display trait since they return the same thing.
-        fmt::Display::fmt(self, f)
-    }
 }
 
 impl fmt::Display for Clock {
