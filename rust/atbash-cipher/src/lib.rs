@@ -19,70 +19,6 @@ fn encode_cipher_chars<I>(input: I) -> impl Iterator<Item = char> where
     input.map(map_char)
 }
 
-// struct SplitInternal<'a, P: Pattern<'a>> {
-//     start: usize,
-//     end: usize,
-//     matcher: P::Searcher,
-//     allow_trailing_empty: bool,
-//     finished: bool,
-// }
-
-// impl<'a, P: Pattern<'a>> SplitInternal<'a, P> {
-//     #[inline]
-//     fn next(&mut self) -> Option<&'a str> {
-//         if self.finished { return None }
-
-//         let haystack = self.matcher.haystack();
-//         match self.matcher.next_match() {
-//             Some((a, b)) => unsafe {
-//                 let elt = haystack.get_unchecked(self.start..a);
-//                 self.start = b;
-//                 Some(elt)
-//             },
-//             None => self.get_end(),
-//         }
-//     }
-
-//generate_pattern_iterators! {
-//    forward:
-//        /// Created with the method [`split`].
-//        ///
-//        /// [`split`]: ../../std/primitive.str.html#method.split
-//        struct Split;
-//    reverse:
-//        /// Created with the method [`rsplit`].
-//        ///
-//        /// [`rsplit`]: ../../std/primitive.str.html#method.rsplit
-//        struct RSplit;
-//    stability:
-//        #[stable(feature = "rust1", since = "1.0.0")]
-//    internal:
-//        SplitInternal yielding (&'a str);
-//    delegate double ended;
-//}
-
-// pub struct $forward_iterator<'a, P: Pattern<'a>>($internal_iterator<'a, P>);
-
-// $(#[$common_stability_attribute])*
-// impl<'a, P: Pattern<'a>> Iterator for $forward_iterator<'a, P> {
-//     type Item = $iterty;
-
-//     #[inline]
-//     fn next(&mut self) -> Option<$iterty> {
-//         self.0.next()
-//     }
-// }
-
-// pub fn split<'a, P: Pattern<'a>>(&'a self, pat: P) -> Split<'a, P> {
-//         Split(SplitInternal {
-//             start: 0,
-//             end: self.len(),
-//             matcher: pat.into_searcher(self),
-//             allow_trailing_empty: true,
-//             finished: false,
-//         })
-//     }
-
 struct Groups<'a> {
     start_index: usize,
     end_index: usize,
@@ -90,14 +26,14 @@ struct Groups<'a> {
     str: &'a str,
 }
 
-fn groups<'a>(str: &'a str, group_size: usize) -> Groups<'a> {
-    Groups {
-        start_index: 0,
-        end_index: str.len(),
-        group_size,
-        str,
-    }
-}
+// fn groups<'a>(str: &'a str, group_size: usize) -> Groups<'a> {
+//     Groups {
+//         start_index: 0,
+//         end_index: str.len(),
+//         group_size,
+//         str,
+//     }
+// }
 
 impl<'a> Iterator for Groups<'a> {
     type Item = &'a str;
@@ -120,6 +56,32 @@ impl<'a> Iterator for Groups<'a> {
         }
     }
 }
+
+trait Groupable {
+    fn groups<'a>(&'a self, group_size: usize) -> Groups<'a>;
+}
+
+impl Groupable for str {
+    fn groups<'a>(&'a self, group_size: usize) -> Groups<'a> {
+        Groups {
+            start_index: 0,
+            end_index: self.len(),
+            group_size,
+            str: self,
+        }
+    }
+}
+
+// impl Groupable for T {
+//     fn groups<'a>(&'a self, group_size: usize) -> Groups<'a> {
+//         Groups {
+//             start_index: 0,
+//             end_index: self.len(),
+//             group_size,
+//             str: self,
+//         }
+//     }
+// }
 
 struct Intersperse<I> where
     I: Iterator
@@ -175,14 +137,21 @@ impl<T> Interspersable for T where T: Iterator { }
 
 /// "Encipher" with the Atbash cipher.
 pub fn encode(plain: &str) -> String {
-    let encoded: String = encode_cipher_chars(normalize(plain)).collect();
-    let encoded_str: &str = &encoded;
-    let str_groups: Groups = groups(encoded_str, 5);
-    // TODO: I can probably get rid of my groupby code, since itertools implements a chunks
-    // operation.
+    // let encoded: String = encode_cipher_chars(normalize(plain)).collect();
+    // // let encoded_str: &str = &encoded;
+    // // let str_groups: Groups = groups(encoded_str, 5);
+    // // let str_groups: Groups = encoded_str.groups(5);
+    // let str_groups: Groups = encoded.groups(5);
+    // // TODO: I can probably get rid of my groupby code, since itertools implements a chunks
+    // // operation.
+    // // str_groups.intersperse(" ").collect()
+    // // intersperse(str_groups, " ").collect()
     // str_groups.intersperse(" ").collect()
-    // intersperse(str_groups, " ").collect()
-    str_groups.intersperse(" ").collect()
+
+    let encoded: String = encode_cipher_chars(normalize(plain)).collect();
+    encoded.groups(5).intersperse(" ").collect()
+
+    // encode_cipher_chars(normalize(plain)).groups(5).intersperse(" ").collect()
 }
 
 /// "Decipher" with the Atbash cipher.
