@@ -121,28 +121,18 @@ impl<'a> Iterator for Groups<'a> {
     }
 }
 
-enum IntersperseState<Item> {
-    PrevIteratorItem,
-    PrevSeparater(Item),
-}
-
 struct Intersperse<I> where
     I: Iterator
 {
-    intersperse_state: IntersperseState<<I as Iterator>::Item>,
+    queued_item: Option<<I as Iterator>::Item>,
     iterator: I,
     separator: <I as Iterator>::Item,
 }
 
 fn intersperse<I>(mut iterator: I, separator: <I as Iterator>::Item) -> Intersperse<I> where
     I: Iterator{
-    // create the initial state
-    let intersperse_state =
-        iterator
-            .next()
-            .map_or(IntersperseState::PrevIteratorItem, IntersperseState::PrevSeparater);
     Intersperse {
-        intersperse_state,
+        queued_item: iterator.next(),
         iterator,
         separator,
     }
@@ -155,34 +145,21 @@ impl<I> Iterator for Intersperse<I> where
     type Item = <I as Iterator>::Item;
 
     fn next(&mut self) -> Option<<I as Iterator>::Item> {
-        match self.intersperse_state {
+        match self.queued_item {
             // The previous thing we returned was an iterator item, so
             // we need to return a separator now, but only if we have
-            // at least one more iterator item in the queue.
-            IntersperseState::PrevIteratorItem => {
-                // let option_next_val = self.iterator.next();
-                // match option_next_val {
-                //     // There are no more iterator items, so we don't need
-                //     // to return anything.  We are done.
-                //     None => None,
-                //     // There is at least one more iterator item, so
-                //     // we queue it up and return a separator.
-                //     Some(next_val) => {
-                //         self.intersperse_state =
-                //             IntersperseState::PrevSeparater(next_val);
-                //         Some(self.separator)
-                //     }
-                // }
+            // at least one more iterator item.
+            None => {
                 self.iterator.next().map(|next_val| {
-                  self.intersperse_state = IntersperseState::PrevSeparater(next_val);
+                  // Add the next iterator item to the queue.
+                  self.queued_item = Some(next_val);
                   self.separator
-                }
-                )
+                })
             }
             // The previous thing we returned was a separator, so
             // we need to return the queued up iterator item now.
-            IntersperseState::PrevSeparater(next_val) => {
-                self.intersperse_state = IntersperseState::PrevIteratorItem;
+            Some(next_val) => {
+                self.queued_item = None;
                 Some(next_val)
             }
             
