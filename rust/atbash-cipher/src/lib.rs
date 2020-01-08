@@ -72,16 +72,20 @@ impl Groupable for str {
     }
 }
 
-// impl Groupable for T {
-//     fn groups<'a>(&'a self, group_size: usize) -> Groups<'a> {
-//         Groups {
-//             start_index: 0,
-//             end_index: self.len(),
-//             group_size,
-//             str: self,
-//         }
-//     }
-// }
+impl Groupable for T where
+    T: Iterator,
+    <T as Iterator>::Item: char
+{
+    fn groups<'a>(&'a self, group_size: usize) -> Groups<'a> {
+        let str = self.collect();
+        Groups {
+            start_index: 0,
+            end_index: str.len(),
+            group_size,
+            str,
+        }
+    }
+}
 
 struct Intersperse<I> where
     I: Iterator
@@ -148,10 +152,10 @@ pub fn encode(plain: &str) -> String {
     // // intersperse(str_groups, " ").collect()
     // str_groups.intersperse(" ").collect()
 
-    let encoded: String = encode_cipher_chars(normalize(plain)).collect();
-    encoded.groups(5).intersperse(" ").collect()
+    // let encoded: String = encode_cipher_chars(normalize(plain)).collect();
+    // encoded.groups(5).intersperse(" ").collect()
 
-    // encode_cipher_chars(normalize(plain)).groups(5).intersperse(" ").collect()
+    encode_cipher_chars(normalize(plain)).groups(5).intersperse(" ").collect()
 }
 
 /// "Decipher" with the Atbash cipher.
