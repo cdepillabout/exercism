@@ -121,6 +121,58 @@ impl<'a> Iterator for Groups<'a> {
     }
 }
 
+
+enum IntersperseState {
+    Started,
+    // OneClosest { index: usize, dist: i32 },
+    // MultiClosest { dist: i32 },
+}
+
+struct Intersperse<I> where
+    I: Iterator
+{
+    intersperse_state: IntersperseState,
+    iterator: I,
+    item: <I as Iterator>::Item,
+}
+
+fn intersperse<I>(iterator: I, item: <I as Iterator>::Item) -> Intersperse<I> where
+    I: Iterator{
+    Intersperse {
+        intersperse_state: IntersperseState::Started,
+        iterator,
+        item,
+    }
+}
+
+impl<I> Iterator for Intersperse<I> where
+    I: Iterator
+{
+    type Item = <I as Iterator>::Item;
+
+    fn next(&mut self) -> Option<<I as Iterator>::Item> {
+        self.iterator.next()
+    }
+
+    // fn next(&mut self) -> Option<&'a str> {
+    //     // If the starting character is greater than (or at) the end character,
+    //     // there are no more characters available.
+    //     if self.start_index >= self.end_index {
+    //         None
+    //     } else {
+    //         // This is the next step size to return.  Normally it will be
+    //         // the group_size, but if we don't have enough characters to 
+    //         // form a full group, it will be the remaining characters.
+    //         let next_step_size =
+    //             std::cmp::min(self.group_size, self.end_index - self.start_index);
+    //         let option_next_str =
+    //             self.str.get(self.start_index .. (self.start_index + next_step_size));
+    //         self.start_index = self.start_index + self.group_size;
+    //         option_next_str
+    //     }
+    // }
+}
+
 /// "Encipher" with the Atbash cipher.
 pub fn encode(plain: &str) -> String {
     let encoded: String = encode_cipher_chars(normalize(plain)).collect();
@@ -128,7 +180,8 @@ pub fn encode(plain: &str) -> String {
     let str_groups: Groups = groups(encoded_str, 5);
     // TODO: I can probably get rid of my groupby code, since itertools implements a chunks
     // operation.
-    str_groups.intersperse(" ").collect()
+    // str_groups.intersperse(" ").collect()
+    intersperse(str_groups, " ").collect()
 }
 
 /// "Decipher" with the Atbash cipher.
