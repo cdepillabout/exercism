@@ -129,15 +129,6 @@ struct Intersperse<I> where
     separator: <I as Iterator>::Item,
 }
 
-fn intersperse<I>(mut iterator: I, separator: <I as Iterator>::Item) -> Intersperse<I> where
-    I: Iterator{
-    Intersperse {
-        queued_item: iterator.next(),
-        iterator,
-        separator,
-    }
-}
-
 impl<I> Iterator for Intersperse<I> where
     I: Iterator,
     <I as Iterator>::Item: Copy
@@ -164,6 +155,27 @@ impl<I> Iterator for Intersperse<I> where
             }
             
         }
+    }
+}
+
+trait Interspersable: Iterable {
+    // // Static method signature; `Self` refers to the implementor type.
+    // fn new(name: &'static str) -> Self;
+
+    // // Instance method signatures; these will return a string.
+    // fn name(&self) -> &'static str;
+    // fn noise(&self) -> &'static str;
+
+    // // Traits can provide default method definitions.
+    // fn talk(&self) {
+    //     println!("{} says {}", self.name(), self.noise());
+    // }
+    fn intersperse<I>(mut iterator: Self, separator: <Self as Iterator>::Item) -> Intersperse<Self> {
+	Intersperse {
+	    queued_item: iterator.next(),
+	    iterator,
+	    separator,
+	}
     }
 }
 
