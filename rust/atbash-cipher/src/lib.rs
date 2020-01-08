@@ -1,4 +1,4 @@
-use itertools::Itertools;
+// use itertools::Itertools;
 
 fn normalize(str: &str) -> impl Iterator<Item = char> + '_ where
 {
@@ -121,56 +121,73 @@ impl<'a> Iterator for Groups<'a> {
     }
 }
 
-
-enum IntersperseState {
-    Started,
-    // OneClosest { index: usize, dist: i32 },
-    // MultiClosest { dist: i32 },
+enum IntersperseState<Item> {
+    PrevIteratorItem,
+    PrevSeparater(Item),
 }
 
 struct Intersperse<I> where
     I: Iterator
 {
-    intersperse_state: IntersperseState,
+    intersperse_state: IntersperseState<<I as Iterator>::Item>,
     iterator: I,
-    item: <I as Iterator>::Item,
+    separator: <I as Iterator>::Item,
 }
 
-fn intersperse<I>(iterator: I, item: <I as Iterator>::Item) -> Intersperse<I> where
+fn intersperse<I>(mut iterator: I, separator: <I as Iterator>::Item) -> Intersperse<I> where
     I: Iterator{
+    // create the initial state
+    let intersperse_state =
+        iterator
+            .next()
+            .map_or(IntersperseState::PrevIteratorItem, IntersperseState::PrevSeparater);
     Intersperse {
-        intersperse_state: IntersperseState::Started,
+        intersperse_state,
         iterator,
-        item,
+        separator,
     }
 }
 
 impl<I> Iterator for Intersperse<I> where
-    I: Iterator
+    I: Iterator,
+    <I as Iterator>::Item: Copy
 {
     type Item = <I as Iterator>::Item;
 
     fn next(&mut self) -> Option<<I as Iterator>::Item> {
-        self.iterator.next()
+        match self.intersperse_state {
+            // The previous thing we returned was an iterator item, so
+            // we need to return a separator now, but only if we have
+            // at least one more iterator item in the queue.
+            IntersperseState::PrevIteratorItem => {
+                // let option_next_val = self.iterator.next();
+                // match option_next_val {
+                //     // There are no more iterator items, so we don't need
+                //     // to return anything.  We are done.
+                //     None => None,
+                //     // There is at least one more iterator item, so
+                //     // we queue it up and return a separator.
+                //     Some(next_val) => {
+                //         self.intersperse_state =
+                //             IntersperseState::PrevSeparater(next_val);
+                //         Some(self.separator)
+                //     }
+                // }
+                self.iterator.next().map(|next_val| {
+                  self.intersperse_state = IntersperseState::PrevSeparater(next_val);
+                  self.separator
+                }
+                )
+            }
+            // The previous thing we returned was a separator, so
+            // we need to return the queued up iterator item now.
+            IntersperseState::PrevSeparater(next_val) => {
+                self.intersperse_state = IntersperseState::PrevIteratorItem;
+                Some(next_val)
+            }
+            
+        }
     }
-
-    // fn next(&mut self) -> Option<&'a str> {
-    //     // If the starting character is greater than (or at) the end character,
-    //     // there are no more characters available.
-    //     if self.start_index >= self.end_index {
-    //         None
-    //     } else {
-    //         // This is the next step size to return.  Normally it will be
-    //         // the group_size, but if we don't have enough characters to 
-    //         // form a full group, it will be the remaining characters.
-    //         let next_step_size =
-    //             std::cmp::min(self.group_size, self.end_index - self.start_index);
-    //         let option_next_str =
-    //             self.str.get(self.start_index .. (self.start_index + next_step_size));
-    //         self.start_index = self.start_index + self.group_size;
-    //         option_next_str
-    //     }
-    // }
 }
 
 /// "Encipher" with the Atbash cipher.
