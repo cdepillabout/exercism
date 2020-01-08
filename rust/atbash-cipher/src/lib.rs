@@ -158,26 +158,20 @@ impl<I> Iterator for Intersperse<I> where
     }
 }
 
-trait Interspersable: Iterable {
-    // // Static method signature; `Self` refers to the implementor type.
-    // fn new(name: &'static str) -> Self;
-
-    // // Instance method signatures; these will return a string.
-    // fn name(&self) -> &'static str;
-    // fn noise(&self) -> &'static str;
-
-    // // Traits can provide default method definitions.
-    // fn talk(&self) {
-    //     println!("{} says {}", self.name(), self.noise());
-    // }
-    fn intersperse<I>(mut iterator: Self, separator: <Self as Iterator>::Item) -> Intersperse<Self> {
+trait Interspersable: Iterator {
+    fn intersperse(mut self, separator: <Self as Iterator>::Item) -> Intersperse<Self> where
+        Self: Sized,
+    {
 	Intersperse {
-	    queued_item: iterator.next(),
-	    iterator,
+	    queued_item: self.next(),
+	    iterator: self,
 	    separator,
 	}
     }
 }
+
+// Interspersable works for any T where T is an Iterator.
+impl<T> Interspersable for T where T: Iterator { }
 
 /// "Encipher" with the Atbash cipher.
 pub fn encode(plain: &str) -> String {
@@ -187,7 +181,8 @@ pub fn encode(plain: &str) -> String {
     // TODO: I can probably get rid of my groupby code, since itertools implements a chunks
     // operation.
     // str_groups.intersperse(" ").collect()
-    intersperse(str_groups, " ").collect()
+    // intersperse(str_groups, " ").collect()
+    str_groups.intersperse(" ").collect()
 }
 
 /// "Decipher" with the Atbash cipher.
