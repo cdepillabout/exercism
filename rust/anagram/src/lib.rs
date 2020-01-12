@@ -8,15 +8,12 @@ pub fn anagrams_for<'a>(word: &str, possible_anagrams: &[&'a str]) -> HashSet<&'
 
     possible_anagrams
         .iter()
-        .filter_map(
-            |str: &&str| {
+        .cloned()
+        .filter(
+            |&str| {
                 let lower_str: String = str.to_lowercase();
                 let lower_str_multi_set = HashMultiSet::from_iter(lower_str.chars());
-                if lower_str_multi_set == lowercase_word_multi_set && lower_str != lowercase_word {
-                    Some(*str)
-                } else {
-                    None
-                }
+                lower_str_multi_set == lowercase_word_multi_set && lower_str != lowercase_word
             })
         .collect()
 }
