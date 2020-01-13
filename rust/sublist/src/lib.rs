@@ -1,3 +1,7 @@
+mod scan;
+
+use scan::Scanable;
+
 #[derive(Debug, PartialEq)]
 pub enum Comparison {
     Equal,
@@ -6,6 +10,16 @@ pub enum Comparison {
     Unequal,
 }
 
-pub fn sublist<T: PartialEq>(_first_list: &[T], _second_list: &[T]) -> Comparison {
-    unimplemented!("Determine if the first list is equal to, sublist of, superlist of or unequal to the second list.");
+pub fn sublist<T: PartialEq>(first_list: &[T], second_list: &[T]) -> Comparison {
+    let is_first_sublist_of_second: bool = 
+        first_list.scan().any(|l| l.starts_with(second_list));
+    let is_second_sublist_of_first: bool = 
+        second_list.scan().any(|l| l.starts_with(first_list));
+
+    match (first_list == second_list, is_first_sublist_of_second, is_second_sublist_of_first) {
+        (true, _, _) => Comparison::Equal,
+        (_, true, false) => Comparison::Superlist,
+        (_, false, true) => Comparison::Sublist,
+        _ => Comparison::Unequal,
+    }
 }
