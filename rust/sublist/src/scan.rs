@@ -6,7 +6,7 @@ impl<T> Iterator for Scanning<T> where T: Scanable + Copy {
     type Item = T;
 
     fn next(&mut self) -> Option<T> {
-        let new_next_item = self.next_item;
+        let new_next_item: T = self.next_item;
         if new_next_item.is_end() {
             None
         } else {
