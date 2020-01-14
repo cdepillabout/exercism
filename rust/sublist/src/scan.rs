@@ -1,45 +1,30 @@
-pub struct Scanning<T> {
-    next_item: T,
+pub struct Scanning<'a, T: 'a> {
+    next_item: &'a [T],
 }
 
-impl<T> Iterator for Scanning<T> where T: Scanable + Copy {
-    type Item = T;
+impl<'a, T> Iterator for Scanning<'a, T> {
+    type Item = &'a [T];
 
-    fn next(&mut self) -> Option<T> {
-        let new_next_item: T = self.next_item;
-        if new_next_item.is_end() {
-            None
+    fn next(&mut self) -> Option<&'a [T]> {
+        if self.next_item.len() > 0 {
+            let ret: Option<&[T]> = Some(self.next_item);
+            self.next_item = &self.next_item[1..];
+            ret
         } else {
-            Scanable::update_next_item(self);
-            Some(new_next_item)
+            None
         }
     }
 }
 
-pub trait Scanable where Self: Sized {
-    fn is_end(&self) -> bool;
-
-    fn update_next_item(scanning: &mut Scanning<Self>);
-
-    fn scan(self) -> Scanning<Self>;
+pub trait Scanable<'a> {
+    type Output;
+    fn scan(self) -> Scanning<'a, Self::Output>;
 }
 
-impl<T> Scanable for &[T] {
+impl<'a, T> Scanable<'a> for &'a [T] {
+    type Output = T;
 
-    fn is_end(&self) -> bool {
-        self.is_empty()
-    }
-
-    fn update_next_item(scanning: &mut Scanning<Self>) {
-        scanning.next_item.split_first().iter().for_each(|(_, next)| {
-            scanning.next_item = next;
-        })
-    }
-
-    fn scan(self) -> Scanning<Self> {
-        Scanning {
-            next_item: self,
-        }
+    fn scan(self) -> Scanning<'a, T> {
+        Scanning { next_item: self }
     }
 }
-
