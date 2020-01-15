@@ -146,14 +146,14 @@ pub fn annotate(minefield: &[&str]) -> Vec<String> {
         .collect();
 
     // Invert the updates and index by the square being updated.
-    let mut inverted_board_updates: HashMap<(usize, usize), Vec<BoardUpdateType>> =
+    let inverted_board_updates: HashMap<(usize, usize), Vec<BoardUpdateType>> =
         invert_board_update(&all_updates);
 
     // Calculate the final piece for each square that will get an update.
     let pieces: HashMap<(usize, usize), Piece> = inverted_board_updates
-        .iter_mut()
+        .iter()
         .map(
-            |(idx, board_updates): (&(usize, usize), &mut Vec<BoardUpdateType>)| {
+            |(idx, board_updates): (&(usize, usize), &Vec<BoardUpdateType>)| {
                 (*idx, board_updates_to_piece(board_updates))
             },
         )
