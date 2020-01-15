@@ -99,12 +99,28 @@ fn board_updates_to_piece(board_updates: &[BoardUpdateType]) -> Piece {
         .fold(Piece::Empty, add_update)
 }
 
-fn sort_rows(pieces: &[((usize, usize), Piece)]) -> Vec<(usize, Piece)> {
-    todo!()
-}
+fn pieces_to_board(max_row, max_col, pieces: &HashMap<(usize, usize), Piece>) -> Vec<String> {
+    let mut ret = Vec::new();
 
-fn pieces_to_board(pieces: &[((usize, usize), Piece)]) -> Vec<String> {
-    todo!()
+    for r in 0..max_row {
+        let mut str = String::new();
+        for c in 0..max_col {
+            match pieces.get(&(r, c)) {
+                Some(Piece::Mine) => {
+                    str.push('*');
+                }
+                Some(Piece::Hit(i)) => {
+                    str.push_str(&i.to_string());
+                }
+                _ => {
+                    str.push(' ');
+                }
+            }
+        }
+        ret.push(str);
+    }
+
+    ret
 }
 
 pub fn annotate(minefield: &[&str]) -> Vec<String> {
@@ -134,25 +150,6 @@ pub fn annotate(minefield: &[&str]) -> Vec<String> {
                 (*idx, board_updates_to_piece(board_updates)))
             .collect();
 
-    let mut ret = Vec::new();
 
-    for r in 0..num_row {
-        let mut str = String::new();
-        for c in 0..num_col {
-            match pieces.get(&(r, c)) {
-                Some(Piece::Mine) => {
-                    str.push('*');
-                }
-                Some(Piece::Hit(i)) => {
-                    str.push_str(&i.to_string());
-                }
-                _ => {
-                    str.push(' ');
-                }
-            }
-        }
-        ret.push(str);
-    }
-
-    ret
+    pieces_to_board(num_row, num_col, pieces)
 }
