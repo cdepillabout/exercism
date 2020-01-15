@@ -139,11 +139,13 @@ pub fn annotate(minefield: &[&str]) -> Vec<String> {
         Some(row) => row.len(),
     };
 
+    // let blahblah: Iter<Item = &str> = (*minefield).into_iter();
+
     // Calculate all the updates for each square on the board.
     let all_updates: Vec<BoardUpdate> = minefield
         .iter()
         .enumerate()
-        .flat_map(|(row_index, row): (usize, &&str)| calc_updates_for_row(row_index, *row))
+        .flat_map(|(row_index, &row): (usize, &&str)| calc_updates_for_row(row_index, row))
         .collect();
 
     // Invert the updates and index by the square being updated.
