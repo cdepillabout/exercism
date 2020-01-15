@@ -58,25 +58,6 @@ fn singleton_vec<A>(a: A) -> Vec<A> {
 }
 
 // Turn an association list into a HashMap.
-// fn hashmap_from_assoc_list<A, B>(v: &[(A, B)]) -> HashMap<A, Vec<B>>
-// where
-//     A: Copy + Eq + Hash,
-//     B: Copy,
-// {
-//     let mut hashmap: HashMap<A, Vec<B>> = HashMap::new();
-
-//     v.into_iter()
-//         .for_each(|&(a, b): &(A, B)| match hashmap.entry(a) {
-//             Entry::Occupied(mut entry) => {
-//                 entry.get_mut().push(b);
-//             }
-//             Entry::Vacant(entry) => {
-//                 entry.insert(singleton_vec(b));
-//             }
-//         });
-
-//     hashmap
-// }
 fn hashmap_from_assoc_list<I, A, B>(i: I) -> HashMap<A, Vec<B>>
 where
     I: Iterator<Item = (A, B)>,
