@@ -1,0 +1,7 @@
+[dependencies]
+itertools = "0.8.2"
+
+[package]
+edition = "2018"
+name = "minesweeper"
+version = "1.1.0"
