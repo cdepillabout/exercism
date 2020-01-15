@@ -102,13 +102,9 @@ where
 fn invert_board_update(
     board_updates: &[BoardUpdate],
 ) -> HashMap<(usize, usize), Vec<BoardUpdateType>> {
-    hashmap_from_assoc_list(
-        board_updates
-            .iter()
-            .map(|&BoardUpdate::BoardUpdate(board_update_type, row, col)| {
-                ((row, col), board_update_type)
-            })
-    )
+    hashmap_from_assoc_list(board_updates.iter().map(
+        |&BoardUpdate::BoardUpdate(board_update_type, row, col)| ((row, col), board_update_type),
+    ))
 }
 
 // Fold function for applying BoardUpdateTypes to Piece.
@@ -125,7 +121,9 @@ fn add_update(piece: Piece, board_update_type: BoardUpdateType) -> Piece {
 fn board_updates_to_piece(board_updates: &[BoardUpdateType]) -> Piece {
     board_updates
         .iter()
-        .fold(Piece::Empty, |piece, &board_update_type| add_update(piece, board_update_type))
+        .fold(Piece::Empty, |piece, &board_update_type| {
+            add_update(piece, board_update_type)
+        })
 }
 
 // Convert a Piece to a String.
@@ -158,8 +156,6 @@ pub fn annotate(minefield: &[&str]) -> Vec<String> {
         None => return Vec::new(),
         Some(row) => row.len(),
     };
-
-    // let blahblah: Iter<Item = &str> = (*minefield).into_iter();
 
     // Calculate all the updates for each square on the board.
     let all_updates: Vec<BoardUpdate> = minefield
