@@ -58,14 +58,15 @@ fn singleton_vec<A>(a: A) -> Vec<A> {
 }
 
 // Turn an association list into a HashMap.
-fn hashmap_from_assoc_list<A, B>(v: Vec<(A, B)>) -> HashMap<A, Vec<B>>
+fn hashmap_from_assoc_list<A, B>(v: &[(A, B)]) -> HashMap<A, Vec<B>>
 where
-    A: Eq + Hash,
+    A: Copy + Eq + Hash,
+    B: Copy,
 {
     let mut hashmap: HashMap<A, Vec<B>> = HashMap::new();
 
     v.into_iter()
-        .for_each(|(a, b): (A, B)| match hashmap.entry(a) {
+        .for_each(|&(a, b): &(A, B)| match hashmap.entry(a) {
             Entry::Occupied(mut entry) => {
                 entry.get_mut().push(b);
             }
@@ -83,12 +84,12 @@ fn invert_board_update(
     board_updates: &[BoardUpdate],
 ) -> HashMap<(usize, usize), Vec<BoardUpdateType>> {
     hashmap_from_assoc_list(
-        board_updates
+        &board_updates
             .iter()
             .map(|BoardUpdate::BoardUpdate(board_update_type, row, col)| {
                 ((*row, *col), *board_update_type)
             })
-            .collect(),
+            .collect::<Vec<((usize, usize), BoardUpdateType)>>()
     )
 }
 
