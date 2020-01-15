@@ -5,18 +5,18 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::hash::Hash;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 enum BoardUpdateType {
     Mine,
     Update,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 enum BoardUpdate {
     BoardUpdate(BoardUpdateType, usize, usize),
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 enum Piece {
     Mine,
     Hit(u32),
@@ -50,19 +50,11 @@ fn calc_updates_for_row(row_index: usize, row: &str) -> Vec<BoardUpdate> {
         .collect()
 }
 
-// Create a vec with one element.
-fn singleton_vec<A>(a: A) -> Vec<A> {
-    let mut vec: Vec<A> = Vec::new();
-    vec.push(a);
-    vec
-}
-
 // Turn an association list into a HashMap.
 fn hashmap_from_assoc_list<I, A, B>(i: I) -> HashMap<A, Vec<B>>
 where
     I: Iterator<Item = (A, B)>,
-    A: Copy + Eq + Hash,
-    B: Copy,
+    A: Eq + Hash,
 {
     let mut hashmap: HashMap<A, Vec<B>> = HashMap::new();
 
@@ -71,7 +63,7 @@ where
             entry.get_mut().push(b);
         }
         Entry::Vacant(entry) => {
-            entry.insert(singleton_vec(b));
+            entry.insert(vec![b]);
         }
     });
 
@@ -83,8 +75,11 @@ where
 fn invert_board_update(
     board_updates: &[BoardUpdate],
 ) -> HashMap<(usize, usize), Vec<BoardUpdateType>> {
-    hashmap_from_assoc_list(board_updates.iter().map(
-        |&BoardUpdate::BoardUpdate(board_update_type, row, col)| ((row, col), board_update_type),
+    hashmap_from_assoc_list(
+        board_updates
+            .iter()
+            .map(
+                |BoardUpdate::BoardUpdate(board_update_type, row, col): &BoardUpdate| ((*row, *col), board_update_type.clone()),
     ))
 }
 
@@ -102,13 +97,13 @@ fn add_update(piece: Piece, board_update_type: BoardUpdateType) -> Piece {
 fn board_updates_to_piece(board_updates: &[BoardUpdateType]) -> Piece {
     board_updates
         .iter()
-        .fold(Piece::Empty, |piece, &board_update_type| {
-            add_update(piece, board_update_type)
+        .fold(Piece::Empty, |piece, board_update_type: &BoardUpdateType| {
+            add_update(piece, board_update_type.clone())
         })
 }
 
 // Convert a Piece to a String.
-fn piece_to_str(piece: Option<&Piece>) -> String {
+fn piece_to_str(piece: Option<Piece>) -> String {
     match piece {
         Some(Piece::Mine) => String::from("*"),
         Some(Piece::Hit(i)) => i.to_string(),
@@ -125,7 +120,7 @@ fn pieces_to_board(
     (0..max_row)
         .map(|r: usize| {
             (0..max_col)
-                .map(|c: usize| piece_to_str(pieces.get(&(r, c))))
+                .map(|c: usize| piece_to_str(pieces.get(&(r, c)).cloned()))
                 .collect::<String>()
         })
         .collect::<Vec<String>>()
