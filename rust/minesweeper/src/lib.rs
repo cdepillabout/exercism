@@ -92,7 +92,7 @@ fn invert_board_update(
     )
 }
 
-// Fold function for applying BoardUpdateTypes to Pieces.
+// Fold function for applying BoardUpdateTypes to Piece.
 fn add_update(piece: Piece, board_update_type: &BoardUpdateType) -> Piece {
     match (piece, board_update_type) {
         (_, BoardUpdateType::Mine) => Piece::Mine,
