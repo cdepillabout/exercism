@@ -58,22 +58,41 @@ fn singleton_vec<A>(a: A) -> Vec<A> {
 }
 
 // Turn an association list into a HashMap.
-fn hashmap_from_assoc_list<A, B>(v: &[(A, B)]) -> HashMap<A, Vec<B>>
+// fn hashmap_from_assoc_list<A, B>(v: &[(A, B)]) -> HashMap<A, Vec<B>>
+// where
+//     A: Copy + Eq + Hash,
+//     B: Copy,
+// {
+//     let mut hashmap: HashMap<A, Vec<B>> = HashMap::new();
+
+//     v.into_iter()
+//         .for_each(|&(a, b): &(A, B)| match hashmap.entry(a) {
+//             Entry::Occupied(mut entry) => {
+//                 entry.get_mut().push(b);
+//             }
+//             Entry::Vacant(entry) => {
+//                 entry.insert(singleton_vec(b));
+//             }
+//         });
+
+//     hashmap
+// }
+fn hashmap_from_assoc_list<I, A, B>(i: I) -> HashMap<A, Vec<B>>
 where
+    I: Iterator<Item = (A, B)>,
     A: Copy + Eq + Hash,
     B: Copy,
 {
     let mut hashmap: HashMap<A, Vec<B>> = HashMap::new();
 
-    v.into_iter()
-        .for_each(|&(a, b): &(A, B)| match hashmap.entry(a) {
-            Entry::Occupied(mut entry) => {
-                entry.get_mut().push(b);
-            }
-            Entry::Vacant(entry) => {
-                entry.insert(singleton_vec(b));
-            }
-        });
+    i.for_each(|(a, b): (A, B)| match hashmap.entry(a) {
+        Entry::Occupied(mut entry) => {
+            entry.get_mut().push(b);
+        }
+        Entry::Vacant(entry) => {
+            entry.insert(singleton_vec(b));
+        }
+    });
 
     hashmap
 }
@@ -84,17 +103,16 @@ fn invert_board_update(
     board_updates: &[BoardUpdate],
 ) -> HashMap<(usize, usize), Vec<BoardUpdateType>> {
     hashmap_from_assoc_list(
-        &board_updates
+        board_updates
             .iter()
-            .map(|BoardUpdate::BoardUpdate(board_update_type, row, col)| {
-                ((*row, *col), *board_update_type)
+            .map(|&BoardUpdate::BoardUpdate(board_update_type, row, col)| {
+                ((row, col), board_update_type)
             })
-            .collect::<Vec<((usize, usize), BoardUpdateType)>>()
     )
 }
 
 // Fold function for applying BoardUpdateTypes to Piece.
-fn add_update(piece: Piece, board_update_type: &BoardUpdateType) -> Piece {
+fn add_update(piece: Piece, board_update_type: BoardUpdateType) -> Piece {
     match (piece, board_update_type) {
         (_, BoardUpdateType::Mine) => Piece::Mine,
         (Piece::Mine, _) => Piece::Mine,
@@ -105,7 +123,9 @@ fn add_update(piece: Piece, board_update_type: &BoardUpdateType) -> Piece {
 
 // Fold a bunch of BoardUpdateTypes to a Piece.
 fn board_updates_to_piece(board_updates: &[BoardUpdateType]) -> Piece {
-    board_updates.iter().fold(Piece::Empty, add_update)
+    board_updates
+        .iter()
+        .fold(Piece::Empty, |piece, &board_update_type| add_update(piece, board_update_type))
 }
 
 // Convert a Piece to a String.
@@ -124,9 +144,9 @@ fn pieces_to_board(
     pieces: &HashMap<(usize, usize), Piece>,
 ) -> Vec<String> {
     (0..max_row)
-        .map(|r| {
+        .map(|r: usize| {
             (0..max_col)
-                .map(|c| piece_to_str(pieces.get(&(r, c))))
+                .map(|c: usize| piece_to_str(pieces.get(&(r, c))))
                 .collect::<String>()
         })
         .collect::<Vec<String>>()
@@ -154,10 +174,10 @@ pub fn annotate(minefield: &[&str]) -> Vec<String> {
 
     // Calculate the final piece for each square that will get an update.
     let pieces: HashMap<(usize, usize), Piece> = inverted_board_updates
-        .iter()
+        .into_iter()
         .map(
-            |(idx, board_updates): (&(usize, usize), &Vec<BoardUpdateType>)| {
-                (*idx, board_updates_to_piece(board_updates))
+            |(idx, board_updates): ((usize, usize), Vec<BoardUpdateType>)| {
+                (idx, board_updates_to_piece(&board_updates))
             },
         )
         .collect();
