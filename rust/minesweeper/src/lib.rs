@@ -99,28 +99,22 @@ fn board_updates_to_piece(board_updates: &[BoardUpdateType]) -> Piece {
         .fold(Piece::Empty, add_update)
 }
 
-fn pieces_to_board(max_row, max_col, pieces: &HashMap<(usize, usize), Piece>) -> Vec<String> {
-    let mut ret = Vec::new();
-
-    for r in 0..max_row {
-        let mut str = String::new();
-        for c in 0..max_col {
-            match pieces.get(&(r, c)) {
-                Some(Piece::Mine) => {
-                    str.push('*');
-                }
-                Some(Piece::Hit(i)) => {
-                    str.push_str(&i.to_string());
-                }
-                _ => {
-                    str.push(' ');
-                }
-            }
-        }
-        ret.push(str);
+fn piece_to_str(piece: Option<&Piece>) -> String {
+    match piece {
+        Some(Piece::Mine) => String::from("*"),
+        Some(Piece::Hit(i)) => i.to_string(),
+        _ => String::from(" "),
     }
+}
 
-    ret
+fn pieces_to_board(max_row: usize, max_col: usize, pieces: &HashMap<(usize, usize), Piece>) -> Vec<String> {
+    (0..max_row)
+        .map(|r|
+            (0..max_col)
+                .map(|c| piece_to_str(pieces.get(&(r, c))))
+                .collect::<String>()
+        )
+        .collect::<Vec<String>>()
 }
 
 pub fn annotate(minefield: &[&str]) -> Vec<String> {
@@ -150,6 +144,5 @@ pub fn annotate(minefield: &[&str]) -> Vec<String> {
                 (*idx, board_updates_to_piece(board_updates)))
             .collect();
 
-
-    pieces_to_board(num_row, num_col, pieces)
+    pieces_to_board(num_row, num_col, &pieces)
 }
