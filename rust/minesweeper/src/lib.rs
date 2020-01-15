@@ -23,6 +23,7 @@ enum Piece {
     Empty,
 }
 
+// Calculate the updates for a given (row, col).
 fn create_updates(row_index: usize, col_index: usize) -> Vec<BoardUpdate> {
     let row_min = if row_index == 0 { 0 } else { row_index - 1 };
     let col_min = if col_index == 0 { 0 } else { col_index - 1 };
@@ -38,6 +39,7 @@ fn create_updates(row_index: usize, col_index: usize) -> Vec<BoardUpdate> {
         .collect()
 }
 
+// Calculate all the updates for a single row.
 fn calc_updates_for_row(row_index: usize, row: &str) -> Vec<BoardUpdate> {
     row.chars()
         .enumerate()
@@ -48,32 +50,35 @@ fn calc_updates_for_row(row_index: usize, row: &str) -> Vec<BoardUpdate> {
         .collect()
 }
 
+// Create a vec with one element.
 fn singleton_vec<A>(a: A) -> Vec<A> {
     let mut vec: Vec<A> = Vec::new();
     vec.push(a);
     vec
 }
 
+// Turn an association list into a HashMap.
 fn hashmap_from_assoc_list<A, B>(v: Vec<(A, B)>) -> HashMap<A, Vec<B>>
 where
     A: Eq + Hash,
 {
     let mut hashmap: HashMap<A, Vec<B>> = HashMap::new();
 
-    for (a, b) in v {
-        match hashmap.entry(a) {
+    v.into_iter()
+        .for_each(|(a, b): (A, B)| match hashmap.entry(a) {
             Entry::Occupied(mut entry) => {
                 entry.get_mut().push(b);
             }
             Entry::Vacant(entry) => {
                 entry.insert(singleton_vec(b));
             }
-        }
-    }
+        });
 
     hashmap
 }
 
+// Turn a list of board updates into a hashmap indexed by locations and values
+// of a list of the board updates for that location.
 fn invert_board_update(
     board_updates: &[BoardUpdate],
 ) -> HashMap<(usize, usize), Vec<BoardUpdateType>> {
@@ -87,6 +92,7 @@ fn invert_board_update(
     )
 }
 
+// Fold function for applying BoardUpdateTypes to Pieces.
 fn add_update(piece: Piece, board_update_type: &BoardUpdateType) -> Piece {
     match (piece, board_update_type) {
         (_, BoardUpdateType::Mine) => Piece::Mine,
@@ -96,10 +102,12 @@ fn add_update(piece: Piece, board_update_type: &BoardUpdateType) -> Piece {
     }
 }
 
+// Fold a bunch of BoardUpdateTypes to a Piece.
 fn board_updates_to_piece(board_updates: &[BoardUpdateType]) -> Piece {
     board_updates.iter().fold(Piece::Empty, add_update)
 }
 
+// Convert a Piece to a String.
 fn piece_to_str(piece: Option<&Piece>) -> String {
     match piece {
         Some(Piece::Mine) => String::from("*"),
@@ -108,6 +116,7 @@ fn piece_to_str(piece: Option<&Piece>) -> String {
     }
 }
 
+// Convert a hashmap of piece locations to a Board.
 fn pieces_to_board(
     max_row: usize,
     max_col: usize,
