@@ -1,55 +1,158 @@
 #[macro_use]
 extern crate itertools;
 
-use std::collections::HashSet;
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
+use std::hash::Hash;
 
-fn count_mines(mines: &HashSet<(i32, i32)>, row: i32, col: i32) -> usize {
-    iproduct!((row - 1)..=(row + 1), (col - 1)..=(col + 1))
-        .filter(|idx: &(i32, i32)| mines.contains(idx))
-        .count()
+#[derive(Debug, Clone)]
+enum BoardUpdateType {
+    Mine,
+    Update,
 }
 
-fn calc_piece(mines: &HashSet<(i32, i32)>, row: i32, col: i32) -> String {
-    if mines.contains(&(row, col)) {
-        "*".to_string()
-    } else {
-        match count_mines(mines, row, col) {
-            0 => " ".to_string(),
-            n => n.to_string(),
+#[derive(Debug)]
+enum BoardUpdate {
+    BoardUpdate(BoardUpdateType, usize, usize),
+}
+
+#[derive(Debug, Clone)]
+enum Piece {
+    Mine,
+    Hit(u32),
+    Empty,
+}
+
+// Calculate the updates for a given (row, col).
+fn create_updates(row_index: usize, col_index: usize) -> Vec<BoardUpdate> {
+    let row_min = if row_index == 0 { 0 } else { row_index - 1 };
+    let col_min = if col_index == 0 { 0 } else { col_index - 1 };
+
+    iproduct!(row_min..(row_index + 2), col_min..(col_index + 2))
+        .map(|(row, col)| {
+            if row == row_index && col == col_index {
+                BoardUpdate::BoardUpdate(BoardUpdateType::Mine, row, col)
+            } else {
+                BoardUpdate::BoardUpdate(BoardUpdateType::Update, row, col)
+            }
+        })
+        .collect()
+}
+
+// Calculate all the updates for a single row.
+fn calc_updates_for_row(row_index: usize, row: &str) -> Vec<BoardUpdate> {
+    row.chars()
+        .enumerate()
+        .flat_map(|(col_index, item): (usize, char)| match item {
+            '*' => create_updates(row_index, col_index),
+            _ => Vec::new(),
+        })
+        .collect()
+}
+
+// Turn an association list into a HashMap.
+fn hashmap_from_assoc_list<I, A, B>(i: I) -> HashMap<A, Vec<B>>
+where
+    I: Iterator<Item = (A, B)>,
+    A: Eq + Hash,
+{
+    let mut hashmap: HashMap<A, Vec<B>> = HashMap::new();
+
+    i.for_each(|(a, b): (A, B)| match hashmap.entry(a) {
+        Entry::Occupied(mut entry) => {
+            entry.get_mut().push(b);
         }
+        Entry::Vacant(entry) => {
+            entry.insert(vec![b]);
+        }
+    });
+
+    hashmap
+}
+
+// Turn a list of board updates into a hashmap indexed by locations and values
+// of a list of the board updates for that location.
+fn invert_board_update(
+    board_updates: &[BoardUpdate],
+) -> HashMap<(usize, usize), Vec<BoardUpdateType>> {
+    hashmap_from_assoc_list(
+        board_updates
+            .iter()
+            .map(
+                |BoardUpdate::BoardUpdate(board_update_type, row, col): &BoardUpdate| ((*row, *col), board_update_type.clone()),
+    ))
+}
+
+// Fold function for applying BoardUpdateTypes to Piece.
+fn add_update(piece: Piece, board_update_type: BoardUpdateType) -> Piece {
+    match (piece, board_update_type) {
+        (_, BoardUpdateType::Mine) => Piece::Mine,
+        (Piece::Mine, _) => Piece::Mine,
+        (Piece::Empty, BoardUpdateType::Update) => Piece::Hit(1),
+        (Piece::Hit(curr), BoardUpdateType::Update) => Piece::Hit(curr + 1),
     }
 }
 
-pub fn annotate(minefield: &[&str]) -> Vec<String> {
-    let mut max_row_index: i32 = -1;
-    let mut max_col_index: i32 = -1;
+// Fold a bunch of BoardUpdateTypes to a Piece.
+fn board_updates_to_piece(board_updates: &[BoardUpdateType]) -> Piece {
+    board_updates
+        .iter()
+        .fold(Piece::Empty, |piece, board_update_type: &BoardUpdateType| {
+            add_update(piece, board_update_type.clone())
+        })
+}
 
-    let mines: HashSet<(i32, i32)> =
-        minefield
-            .iter()
-            .enumerate()
-            .flat_map(|(row, &str): (usize, &&str)| {
-                max_row_index = row as i32;
-                str
-                    .chars()
-                    .enumerate()
-                    .filter_map(|(col, char): (usize, char)| {
-                        max_col_index = col as i32;
-                        if char == '*' {
-                            Some((row as i32, col as i32))
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<HashSet<(i32, i32)>>()
-            })
-            .collect();
+// Convert a Piece to a String.
+fn piece_to_str(piece: Option<Piece>) -> String {
+    match piece {
+        Some(Piece::Mine) => String::from("*"),
+        Some(Piece::Hit(i)) => i.to_string(),
+        _ => String::from(" "),
+    }
+}
 
-    (0..=max_row_index)
-        .map(|row: i32| {
-            (0..=max_col_index)
-                .map(|col: i32| calc_piece(&mines, row, col))
+// Convert a hashmap of piece locations to a Board.
+fn pieces_to_board(
+    max_row: usize,
+    max_col: usize,
+    pieces: &HashMap<(usize, usize), Piece>,
+) -> Vec<String> {
+    (0..max_row)
+        .map(|r: usize| {
+            (0..max_col)
+                .map(|c: usize| piece_to_str(pieces.get(&(r, c)).cloned()))
                 .collect::<String>()
         })
         .collect::<Vec<String>>()
+}
+
+pub fn annotate(minefield: &[&str]) -> Vec<String> {
+    let num_row: usize = minefield.len();
+    let num_col: usize = match minefield.get(0) {
+        None => return Vec::new(),
+        Some(row) => row.len(),
+    };
+
+    // Calculate all the updates for each square on the board.
+    let all_updates: Vec<BoardUpdate> = minefield
+        .iter()
+        .enumerate()
+        .flat_map(|(row_index, &row): (usize, &&str)| calc_updates_for_row(row_index, row))
+        .collect();
+
+    // Invert the updates and index by the square being updated.
+    let inverted_board_updates: HashMap<(usize, usize), Vec<BoardUpdateType>> =
+        invert_board_update(&all_updates);
+
+    // Calculate the final piece for each square that will get an update.
+    let pieces: HashMap<(usize, usize), Piece> = inverted_board_updates
+        .into_iter()
+        .map(
+            |(idx, board_updates): ((usize, usize), Vec<BoardUpdateType>)| {
+                (idx, board_updates_to_piece(&board_updates))
+            },
+        )
+        .collect();
+
+    pieces_to_board(num_row, num_col, &pieces)
 }
