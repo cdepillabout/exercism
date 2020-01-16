@@ -5,6 +5,8 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::hash::Hash;
 
+pub mod lib2;
+
 #[derive(Debug, Clone)]
 enum BoardUpdateType {
     Mine,
